@@ -62,7 +62,7 @@ install-python-deps:
 	# Only attempt to install python dependencies if network access is
 	# available
 	if wget -q --spider https://pypi.org/simple; then \
-		pip install -q -r requirements.txt \
+		pip install -q -r requirements.txt; \
 	fi
 
 # Download and unpack all benchmarks
