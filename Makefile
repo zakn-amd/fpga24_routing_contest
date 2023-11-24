@@ -112,9 +112,9 @@ setup-net_printer setup-wirelength_analyzer: | install-python-deps fpga-intercha
 $(ROUTER)_container.sif: alpha_submission/$(ROUTER)_container.def
 	apptainer build $(ROUTER)_container.sif alpha_submission/$(ROUTER)_container.def
 
-.PHONY: run_alpha_submission
-run_alpha_submission: $(ROUTER)_container.sif
-	apptainer run --net --network none --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif
+.PHONY: run_public_container
+run_public_container: $(ROUTER)_container.sif
+	apptainer run --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif
 
 clean:
 	rm -f *.{phys,check,wirelength}*
