@@ -59,7 +59,11 @@ compile-java:
 
 .PHONY: install-python-deps
 install-python-deps:
-	pip install -q -r requirements.txt
+	# Only attempt to install python dependencies if network access is
+	# available
+	if wget -q --spider https://pypi.org/simple; then \
+		pip install -q -r requirements.txt \
+	fi
 
 # Download and unpack all benchmarks
 .PHONY: download-benchmarks
@@ -104,6 +108,13 @@ score-$(ROUTER): $(addsuffix _$(ROUTER).wirelength, $(BENCHMARKS)) $(addsuffix _
 
 .PHONY: setup-net_printer setup-wirelength_analyzer
 setup-net_printer setup-wirelength_analyzer: | install-python-deps fpga-interchange-schema/interchange/capnp/java.capnp
+
+$(ROUTER)_container.sif: alpha_submission/$(ROUTER)_container.def
+	apptainer build $(ROUTER)_container.sif alpha_submission/$(ROUTER)_container.def
+
+.PHONY: run_alpha_submission
+run_alpha_submission: $(ROUTER)_container.sif
+	apptainer run --net --network none --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif
 
 clean:
 	rm -f *.{phys,check,wirelength}*

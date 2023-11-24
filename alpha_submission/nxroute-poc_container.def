@@ -1,0 +1,17 @@
+BootStrap: docker
+From: eclipse-temurin:17
+
+%files
+	./requirements.txt /requirements.txt
+
+%post
+	apt-get -y update
+	apt-get -y install git python3 pip pkg-config libcapnp-dev time libtinfo5
+	pip install -r /requirements.txt
+	mkdir /tools
+
+%environment
+	export PATH=$PATH:/tools/Xilinx/Vivado/2022.2/bin/
+
+%runscript
+	make ROUTER="nxroute"
