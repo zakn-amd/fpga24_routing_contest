@@ -26,7 +26,7 @@ HTTPHOST=$(firstword $(subst :, ,$(subst http:,,$(subst /,,$(HTTP_PROXY)))))
 HTTPPORT=$(lastword $(subst :, ,$(subst http:,,$(subst /,,$(HTTP_PROXY)))))
 HTTPSHOST=$(firstword $(subst :, ,$(subst http:,,$(subst /,,$(HTTPS_PROXY)))))
 HTTPSPORT=$(lastword $(subst :, ,$(subst http:,,$(subst /,,$(HTTPS_PROXY)))))
-GRADLE_PROXY=$(if $(HTTPHOST),-Dhttp.proxyHost=$(HTTPHOST) -Dhttp.proxyPort=$(HTTPPORT),) \
+JAVA_PROXY=$(if $(HTTPHOST),-Dhttp.proxyHost=$(HTTPHOST) -Dhttp.proxyPort=$(HTTPPORT),) \
 $(if $(HTTPSHOST),-Dhttps.proxyHost=$(HTTPSHOST) -Dhttps.proxyPort=$(HTTPSPORT),)
 
 # Choice of router (default to rwroute)
@@ -63,7 +63,7 @@ run-$(ROUTER): score-$(ROUTER)
 # as well as the RapidWright repository
 .PHONY: compile-java
 compile-java:
-	./gradlew $(GRADLE_PROXY) compileJava
+	./gradlew $(JAVA_PROXY) compileJava
 
 .PHONY: install-python-deps
 install-python-deps:
@@ -92,7 +92,7 @@ fpga-interchange-schema/interchange/capnp/java.capnp:
 # $^ (%.netlist and %_rwroute.phys), and display/redirect all output to $@.log (%_rwroute.check.log).
 # The exit code of Gradle determines if 'PASS' or 'FAIL' is written to $@ (%_rwroute.check)
 %_$(ROUTER).check: %.netlist %_$(ROUTER).phys | compile-java
-	if ./gradlew $(GRADLE_PROXY) -DjvmArgs="-Xms6g -Xmx6g" -Dmain=com.xilinx.fpga24_routing_contest.CheckPhysNetlist :run --args='$^' $(call log_and_or_display,$@.log); then \
+	if ./gradlew $(JAVA_PROXY) -DjvmArgs="-Xms6g -Xmx6g" -Dmain=com.xilinx.fpga24_routing_contest.CheckPhysNetlist :run --args='$^' $(call log_and_or_display,$@.log); then \
             echo "PASS" > $@; \
         else \
             echo "FAIL" > $@; \
@@ -112,7 +112,7 @@ score-$(ROUTER): $(addsuffix _$(ROUTER).wirelength, $(BENCHMARKS)) $(addsuffix _
 
 .PRECIOUS: %.device
 %.device: | compile-java
-	_JAVA_OPTIONS="-Xms14g -Xmx14g" RapidWright/bin/rapidwright DeviceResourcesExample $*
+	_JAVA_OPTIONS="-Xms14g -Xmx14g $(JAVA_PROXY)" RapidWright/bin/rapidwright DeviceResourcesExample $*
 
 .PHONY: setup-net_printer setup-wirelength_analyzer
 setup-net_printer setup-wirelength_analyzer: | install-python-deps fpga-interchange-schema/interchange/capnp/java.capnp
@@ -120,9 +120,14 @@ setup-net_printer setup-wirelength_analyzer: | install-python-deps fpga-intercha
 $(ROUTER)_container.sif: alpha_submission/$(ROUTER)_container.def
 	apptainer build $(ROUTER)_container.sif alpha_submission/$(ROUTER)_container.def
 
-.PHONY: run_public_container
-run_public_container: $(ROUTER)_container.sif
-	apptainer run --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif
+# Define further apptainer arguments here as required
+ifeq($(ROUTER),ocl-poc)
+APPTAINER_ARGS=--rocm --bind /etc/OpenCL # eanble OpenCL GPU support
+endif
+
+.PHONY: run-container
+run-container: $(ROUTER)_container.sif
+	apptainer run $(APPTAINER_ARGS) --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
 
 clean:
 	rm -f *.{phys,check,wirelength}*
@@ -138,7 +143,7 @@ distclean: clean
 # Gradle is used to invoke the PartialRouterPhysNetlist class' main method with arguments
 # $< (%_unrouted.phys) and $@ (%_rwroute.phys), and display/redirect all output into %_rwroute.phys.log
 %_rwroute.phys: %_unrouted.phys | compile-java
-	(/usr/bin/time ./gradlew $(GRADLE_PROXY) -DjvmArgs="$(JVM_HEAP)" -Dmain=com.xilinx.fpga24_routing_contest.PartialRouterPhysNetlist :run --args='$< $@') $(call log_and_or_display,$@.log)
+	(/usr/bin/time ./gradlew $(JAVA_PROXY) -DjvmArgs="$(JVM_HEAP)" -Dmain=com.xilinx.fpga24_routing_contest.PartialRouterPhysNetlist :run --args='$< $@') $(call log_and_or_display,$@.log)
 
 ## NXROUTE-POC
 %_nxroute-poc.phys: %_unrouted.phys xcvu3p.device | install-python-deps fpga-interchange-schema/interchange/capnp/java.capnp

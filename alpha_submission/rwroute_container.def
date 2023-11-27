@@ -14,4 +14,4 @@ From: eclipse-temurin:17
 	export PATH=$PATH:/tools/Xilinx/Vivado/2022.2/bin/
 
 %runscript
-	make ROUTER="rwroute"
+	make ROUTER="$1"
