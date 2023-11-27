@@ -121,7 +121,7 @@ $(ROUTER)_container.sif: alpha_submission/$(ROUTER)_container.def
 	apptainer build $(ROUTER)_container.sif alpha_submission/$(ROUTER)_container.def
 
 # Define further apptainer arguments here as required
-ifeq($(ROUTER),ocl-poc)
+ifeq ($(ROUTER),ocl-poc)
 APPTAINER_ARGS=--rocm --bind /etc/OpenCL # eanble OpenCL GPU support
 endif
 
