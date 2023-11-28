@@ -130,7 +130,7 @@ run-container: $(ROUTER)_container.sif
 	apptainer run $(APPTAINER_ARGS) --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
 
 clean:
-	rm -f *.{phys,check,wirelength}*
+	rm -f *.phys *.check *.wirelength *.sif
 
 distclean: clean
 	rm -rf *.device *_unrouted.phys *.netlist*
