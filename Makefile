@@ -5,19 +5,14 @@
 # SPDX-License-Identifier: MIT
 #
 
-# List of all benchmarks (default to all)
-BENCHMARKS ?= boom_med_pb		\
-              vtr_mcml			\
-              rosetta_fd		\
-              corundum_25g		\
-              vtr_lu64peeng		\
-              corescore_500		\
-              corescore_500_pb		\
-              mlcad_d181_lefttwo3rds	\
-              koios_dla_like_large 	\
-              boom_soc			\
-              ispd16_example2
+SHELL = /usr/bin/bash
 
+# List of all benchmarks (default to all)
+BENCHMARKS ?= vtr_mcml			\
+              rosetta_fd		\
+              koios_dla_like_large 	\
+              ispd16_example2 		\
+              boom_soc
 
 BENCHMARKS_URL = https://github.com/Xilinx/fpga24_routing_contest/releases/latest/download/benchmarks.tar.gz
 
@@ -67,11 +62,7 @@ compile-java:
 
 .PHONY: install-python-deps
 install-python-deps:
-	# Only attempt to install python dependencies if network access is
-	# available
-	if wget -q --spider https://pypi.org/simple; then \
-		pip install -q -r requirements.txt; \
-	fi
+	pip install -q -r requirements.txt
 
 # Download and unpack all benchmarks
 .PHONY: download-benchmarks
@@ -108,7 +99,7 @@ fpga-interchange-schema/interchange/capnp/java.capnp:
 
 .PHONY: score-$(ROUTER)
 score-$(ROUTER): $(addsuffix _$(ROUTER).wirelength, $(BENCHMARKS)) $(addsuffix _$(ROUTER).check, $(BENCHMARKS))
-	python3 ./compute-score.py $(addsuffix _$(ROUTER), $(BENCHMARKS))
+	python ./compute-score.py $(addsuffix _$(ROUTER), $(BENCHMARKS))
 
 .PRECIOUS: %.device
 %.device: | compile-java
@@ -117,20 +108,15 @@ score-$(ROUTER): $(addsuffix _$(ROUTER).wirelength, $(BENCHMARKS)) $(addsuffix _
 .PHONY: setup-net_printer setup-wirelength_analyzer
 setup-net_printer setup-wirelength_analyzer: | install-python-deps fpga-interchange-schema/interchange/capnp/java.capnp
 
-$(ROUTER)_container.sif: alpha_submission/$(ROUTER)_container.def
-	apptainer build $(ROUTER)_container.sif alpha_submission/$(ROUTER)_container.def
-
-# Define further apptainer arguments here as required
-ifeq ($(ROUTER),ocl-poc)
-APPTAINER_ARGS=--rocm --bind /etc/OpenCL # eanble OpenCL GPU support
-endif
+%_container.sif: alpha_submission/%_container.def
+	apptainer build $@ $<
 
 .PHONY: run-container
 run-container: $(ROUTER)_container.sif
-	apptainer run $(APPTAINER_ARGS) --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
+	apptainer run --pid --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif
 
 clean:
-	rm -f *.phys *.check *.wirelength *.sif
+	rm -f *.{phys,check,wirelength,sif}*
 
 distclean: clean
 	rm -rf *.device *_unrouted.phys *.netlist*
@@ -154,6 +140,16 @@ distclean: clean
 # 	(/usr/bin/time <custom router here> $< $@) > $@.log $(call log_and_or_display,$@.log)
 
 #### END ROUTER RECIPES
+
+#### BEGIN EXAMPLE RECIPES
+
+# Build and run an example OpenCL application in an Apptainer container
+opencl_example_container.sif: alpha_submission/opencl_example/opencl_example_container.def
+	apptainer build $@ $<
+run-opencl-example: opencl_example_container.sif
+	apptainer run --pid --rocm --bind /etc/OpenCL $<
+
+#### END EXAMPLE RECIPES
 
 # Tell make to not treat routed results as intermediate files (which would get deleted)
 .PRECIOUS: %_$(ROUTER).phys
