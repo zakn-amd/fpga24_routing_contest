@@ -62,7 +62,7 @@ compile-java:
 
 .PHONY: install-python-deps
 install-python-deps:
-	pip install -q -r requirements.txt -t .
+	pip install -q -r requirements.txt
 
 # Download and unpack all benchmarks
 .PHONY: download-benchmarks
