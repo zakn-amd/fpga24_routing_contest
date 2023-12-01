@@ -8,11 +8,18 @@
 SHELL = /bin/bash
 
 # List of all benchmarks (default to all)
-BENCHMARKS ?= vtr_mcml			\
+BENCHMARKS ?= boom_med_pb		\
+              vtr_mcml			\
               rosetta_fd		\
+              corundum_25g		\
+              vtr_lu64peeng		\
+              corescore_500		\
+              corescore_500_pb		\
+              mlcad_d181_lefttwo3rds	\
               koios_dla_like_large 	\
-              ispd16_example2 		\
-              boom_soc
+              boom_soc			\
+              ispd16_example2
+
 
 BENCHMARKS_URL = https://github.com/Xilinx/fpga24_routing_contest/releases/latest/download/benchmarks.tar.gz
 
@@ -99,7 +106,7 @@ fpga-interchange-schema/interchange/capnp/java.capnp:
 
 .PHONY: score-$(ROUTER)
 score-$(ROUTER): $(addsuffix _$(ROUTER).wirelength, $(BENCHMARKS)) $(addsuffix _$(ROUTER).check, $(BENCHMARKS))
-	python ./compute-score.py $(addsuffix _$(ROUTER), $(BENCHMARKS))
+	python3 ./compute-score.py $(addsuffix _$(ROUTER), $(BENCHMARKS))
 
 .PRECIOUS: %.device
 %.device: | compile-java
