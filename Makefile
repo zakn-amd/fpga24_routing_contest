@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MIT
 #
 
-SHELL = /usr/bin/bash
+SHELL = /bin/bash
 
 # List of all benchmarks (default to all)
 BENCHMARKS ?= vtr_mcml			\
@@ -108,13 +108,6 @@ score-$(ROUTER): $(addsuffix _$(ROUTER).wirelength, $(BENCHMARKS)) $(addsuffix _
 .PHONY: setup-net_printer setup-wirelength_analyzer
 setup-net_printer setup-wirelength_analyzer: | install-python-deps fpga-interchange-schema/interchange/capnp/java.capnp
 
-%_container.sif: alpha_submission/%_container.def
-	apptainer build $@ $<
-
-.PHONY: run-container
-run-container: $(ROUTER)_container.sif
-	apptainer run --pid --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif
-
 clean:
 	rm -f *.{phys,check,wirelength,sif}*
 
@@ -141,13 +134,40 @@ distclean: clean
 
 #### END ROUTER RECIPES
 
+#### BEGIN CONTEST SUBMISSION RECIPES
+
+# Default Apptainer args. Contestants may modify as necessary.
+# --pid: ensures all processes apptainer spawns are killed with the container
+# --rocm --bind /etc/OpenCL: enables OpenCL access in the container
+APPTAINER_RUN_ARGS = --pid --rocm --bind /etc/OpenCL
+
+# Build an Apptainer image from a definition file in the alpha_submission directory
+%_container.sif: alpha_submission/%_container.def
+	apptainer build $@ $<
+
+# Run the Apptainer image called <ROUTER>_container.sif
+.PHONY: run-container
+run-container: $(ROUTER)_container.sif
+	apptainer run $(APPTAINER_RUN_ARGS) --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
+
+SUBMISSION_NAME = $(ROUTER)_submission_$(shell date +%Y%m%d%H%M%S)
+
+# distclean the repo and create an archive ready for submission
+# Submission name is <ROUTER NAME>_submission_<timestamp>
+.PHONY: distclean-and-package-submission
+distclean-and-package-submission: distclean
+tar -czf ../$(SUBMISSION_NAME).tar.gz .
+mv ../$(SUBMISSION_NAME).tar.gz .
+
+#### END CONTEST SUBMISSION RECIPES
+
 #### BEGIN EXAMPLE RECIPES
 
 # Build and run an example OpenCL application in an Apptainer container
 opencl_example_container.sif: alpha_submission/opencl_example/opencl_example_container.def
 	apptainer build $@ $<
 run-opencl-example: opencl_example_container.sif
-	apptainer run --pid --rocm --bind /etc/OpenCL $<
+	apptainer run $(APPTAINER_RUN_ARGS) $<
 
 #### END EXAMPLE RECIPES
 
