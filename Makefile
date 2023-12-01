@@ -156,8 +156,8 @@ SUBMISSION_NAME = $(ROUTER)_submission_$(shell date +%Y%m%d%H%M%S)
 # Submission name is <ROUTER NAME>_submission_<timestamp>
 .PHONY: distclean-and-package-submission
 distclean-and-package-submission: distclean
-tar -czf ../$(SUBMISSION_NAME).tar.gz .
-mv ../$(SUBMISSION_NAME).tar.gz .
+	tar -czf ../$(SUBMISSION_NAME).tar.gz .
+	mv ../$(SUBMISSION_NAME).tar.gz .
 
 #### END CONTEST SUBMISSION RECIPES
 
