@@ -66,6 +66,7 @@ run-$(ROUTER): score-$(ROUTER)
 .PHONY: compile-java
 compile-java:
 	./gradlew $(JAVA_PROXY) compileJava
+	RapidWright/bin/rapidwright Jython -c "FileTools.ensureDataFilesAreStaticInstallFriendly('xcvu3p')"
 
 .PHONY: install-python-deps
 install-python-deps:
