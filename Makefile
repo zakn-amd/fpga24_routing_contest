@@ -145,19 +145,28 @@ distclean: clean
 
 #### BEGIN CONTEST SUBMISSION RECIPES
 
-# Default Apptainer args. Contestants may modify as necessary.
+# Required Apptainer args:
 # --pid: ensures all processes apptainer spawns are killed with the container
+# --home `pwd`: overrides the home directory inside the container to be the current dir
+APPTAINER_RUN_ARGS = --pid --home `pwd`
+
+# Default Apptainer args. Contestants may modify as necessary.
 # --rocm --bind /etc/OpenCL: enables OpenCL access in the container
-APPTAINER_RUN_ARGS = --pid --rocm --bind /etc/OpenCL
+APPTAINER_RUN_ARGS += --rocm --bind /etc/OpenCL
 
 # Build an Apptainer image from a definition file in the alpha_submission directory
 %_container.sif: alpha_submission/%_container.def
 	apptainer build $@ $<
 
-# Run the Apptainer image called <ROUTER>_container.sif
+# Use the <ROUTER>_container.sif Apptainer image to run all benchmarks
 .PHONY: run-container
 run-container: $(ROUTER)_container.sif
-	apptainer run $(APPTAINER_RUN_ARGS) --no-home --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
+	apptainer run $(APPTAINER_RUN_ARGS) --mount src=/tools/,dst=/tools/,ro $< make ROUTER="$(ROUTER)" BENCHMARKS="$(BENCHMARKS)" VERBOSE="$(VERBOSE)"
+
+# Use the <ROUTER>_container.sif Apptainer image to run a single small benchmark for testing
+.PHONY: test-container
+test-container: $(ROUTER)_container.sif
+	apptainer run $(APPTAINER_RUN_ARGS) --mount src=/tools/,dst=/tools/,ro $< make ROUTER="$(ROUTER)" BENCHMARKS="boom_med_pb" VERBOSE="$(VERBOSE)"
 
 SUBMISSION_NAME = $(ROUTER)_submission_$(shell date +%Y%m%d%H%M%S)
 
@@ -175,6 +184,8 @@ distclean-and-package-submission: distclean
 # Build and run an example OpenCL application in an Apptainer container
 opencl_example_container.sif: alpha_submission/opencl_example/opencl_example_container.def
 	apptainer build $@ $<
+
+.PHONY: run-opencl-example
 run-opencl-example: opencl_example_container.sif
 	apptainer run $(APPTAINER_RUN_ARGS) $<
 

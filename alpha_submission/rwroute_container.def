@@ -1,5 +1,5 @@
 BootStrap: docker
-From: eclipse-temurin:17 # Base image fulfills Java dependencies
+From: eclipse-temurin:17 # Base image with Java VM 17 on Ubuntu
 
 %post
 	# Install remaining system dependencies
@@ -11,11 +11,3 @@ From: eclipse-temurin:17 # Base image fulfills Java dependencies
 %environment
 	# Add the host Vivado to the path
 	export PATH=$PATH:/tools/Xilinx/Vivado/2022.2/bin/
-	export HOME=`pwd`/home
-	export GRADLE_USER_HOME=$HOME/.gradle
-	mkdir -p $HOME
-
-%runscript
-	# Run the Makefile with the ROUTER variable set to the first argument
-	# passed to the container
-	make ROUTER=$1
