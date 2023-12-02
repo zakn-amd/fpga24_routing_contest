@@ -69,7 +69,7 @@ compile-java:
 
 .PHONY: install-python-deps
 install-python-deps:
-	pip install -q -r requirements.txt --pre
+	pip install -q -r requirements.txt --pre --user
 
 # Download and unpack all benchmarks
 .PHONY: download-benchmarks
@@ -90,7 +90,7 @@ fpga-interchange-schema/interchange/capnp/java.capnp:
 # $^ (%.netlist and %_rwroute.phys), and display/redirect all output to $@.log (%_rwroute.check.log).
 # The exit code of Gradle determines if 'PASS' or 'FAIL' is written to $@ (%_rwroute.check)
 %_$(ROUTER).check: %.netlist %_$(ROUTER).phys | compile-java
-	if ./gradlew $(JAVA_PROXY) -DjvmArgs="-Xms6g -Xmx6g" -Dmain=com.xilinx.fpga24_routing_contest.CheckPhysNetlist :run --args='$^' $(call log_and_or_display,$@.log); then \
+	if ./gradlew -DjvmArgs="-Xms6g -Xmx6g $(JAVA_PROXY)" -Dmain=com.xilinx.fpga24_routing_contest.CheckPhysNetlist :run --args='$^' $(call log_and_or_display,$@.log); then \
             echo "PASS" > $@; \
         else \
             echo "FAIL" > $@; \
@@ -129,7 +129,7 @@ distclean: clean
 # Gradle is used to invoke the PartialRouterPhysNetlist class' main method with arguments
 # $< (%_unrouted.phys) and $@ (%_rwroute.phys), and display/redirect all output into %_rwroute.phys.log
 %_rwroute.phys: %_unrouted.phys | compile-java
-	(/usr/bin/time ./gradlew $(JAVA_PROXY) -DjvmArgs="$(JVM_HEAP)" -Dmain=com.xilinx.fpga24_routing_contest.PartialRouterPhysNetlist :run --args='$< $@') $(call log_and_or_display,$@.log)
+	(/usr/bin/time ./gradlew  -DjvmArgs="$(JVM_HEAP) $(JAVA_PROXY)" -Dmain=com.xilinx.fpga24_routing_contest.PartialRouterPhysNetlist :run --args='$< $@') $(call log_and_or_display,$@.log)
 
 ## NXROUTE-POC
 %_nxroute-poc.phys: %_unrouted.phys xcvu3p.device | install-python-deps fpga-interchange-schema/interchange/capnp/java.capnp
@@ -155,7 +155,7 @@ APPTAINER_RUN_ARGS = --pid --rocm --bind /etc/OpenCL
 # Run the Apptainer image called <ROUTER>_container.sif
 .PHONY: run-container
 run-container: $(ROUTER)_container.sif
-	apptainer run $(APPTAINER_RUN_ARGS) --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
+	apptainer run $(APPTAINER_RUN_ARGS) --no-home --mount src=/tools/,dst=/tools/,ro $(ROUTER)_container.sif $(ROUTER)
 
 SUBMISSION_NAME = $(ROUTER)_submission_$(shell date +%Y%m%d%H%M%S)
 
