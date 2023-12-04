@@ -156,7 +156,10 @@ endif
 
 # Default Apptainer args. Contestants may modify as necessary.
 # --rocm --bind /etc/OpenCL: enables OpenCL access in the container
-APPTAINER_RUN_ARGS += --rocm --bind /etc/OpenCL
+APPTAINER_RUN_ARGS += --rocm
+ifneq ($(wildcard /etc/OpenCL),)
+    APPTAINER_RUN_ARGS += --bind /etc/OpenCL
+endif
 
 # Build an Apptainer image from a definition file in the alpha_submission directory
 %_container.sif: alpha_submission/%_container.def
